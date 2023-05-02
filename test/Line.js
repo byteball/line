@@ -8,6 +8,7 @@ const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const uniswapV2RouterJson = require('@uniswap/v2-periphery/build/UniswapV2Router02.json');
 const uniswapV2FactoryJson = require('@uniswap/v2-core/build/UniswapV2Factory.json');
 const uniswapV2PairJson = require('@uniswap/v2-core/build/UniswapV2Pair.json');
+const nftJson = require('../artifacts/contracts/LoanNFT.sol/LoanNFT.json');
 require('dotenv').config();
 
 const { utils: { parseEther, formatEther }, BigNumber } = ethers;
@@ -49,6 +50,7 @@ describe("Line", function () {
 
 	let gbyte_contract;
 	let line_contract;
+	let nft_contract;
 	let uniswap_contract;
 	let oracle_contract;
 	let pair_address;
@@ -65,6 +67,10 @@ describe("Line", function () {
 			uniswap_contract = res.uniswap_contract;
 			owner = res.owner;
 			alice = res.alice;
+
+			const nft_contract_address = await line_contract.loanNFT();
+			nft_contract = new ethers.Contract(nft_contract_address, nftJson.abi, alice);
+			console.log('NFT contract', nft_contract.address);
 
 			expect(await gbyte_contract.symbol()).to.equal("GBYTE");
 			expect(await line_contract.symbol()).to.equal("LINE");
@@ -101,6 +107,15 @@ describe("Line", function () {
 			expect(await gbyte_contract.balanceOf(line_contract.address)).to.eq(lineBalanceInGbyte.add(amount))
 			expect(await gbyte_contract.balanceOf(alice.address)).to.eq(aliceBalanceInGbyte.sub(amount))
 			expect(await line_contract.balanceOf(alice.address)).to.eq(aliceBalanceInLine.add(net_loan_amount))
+			expect(await nft_contract.balanceOf(alice.address)).to.eq(1)
+			expect(await nft_contract.ownerOf(1)).to.eq(alice.address)
+			const loans = await nft_contract.getAllActiveLoans()
+			const alice_loans = await nft_contract.getAllActiveLoansByOwner(alice.address)
+			expect(loans.length).to.eq(1)
+			expect(alice_loans.length).to.eq(1)
+			expect(loans[0].collateral_amount).to.eq(amount)
+			expect(loans[0].loan_amount).to.eq(loan_amount)
+			expect(loans[0].initial_owner).to.eq(alice.address)
 		})
 
 		it("Create a uniswap pair and add liquidity", async function () {
@@ -202,9 +217,24 @@ describe("Line", function () {
 			await expect(line_contract.connect(alice).borrow(amount2))
 				.to.emit(line_contract, "NewLoan").withArgs(2, alice.address, amount2, loan_amount2, net_loan_amount2, anyValue)
 			expect(await line_contract.getLoanDue(2)).to.be.closeTo(loan_amount2, 1);
+			expect(await nft_contract.balanceOf(alice.address)).to.eq(2)
+			expect(await nft_contract.ownerOf(2)).to.eq(alice.address)
+			const loans = await nft_contract.getAllActiveLoans()
+			const alice_loans = await nft_contract.getAllActiveLoansByOwner(alice.address)
+			expect(loans.length).to.eq(2)
+			expect(alice_loans.length).to.eq(2)
+			expect(loans[1].collateral_amount).to.eq(amount2)
+			expect(loans[1].loan_amount).to.eq(loan_amount2)
+			expect(loans[1].initial_owner).to.eq(alice.address)
 
 			await expect(line_contract.connect(alice).repay(1))
 				.to.emit(line_contract, "Repaid").withArgs(1, alice.address, amount, anyValue, anyValue)
+			
+			const loans_after = await nft_contract.getAllActiveLoans()
+			const alice_loans_after = await nft_contract.getAllActiveLoansByOwner(alice.address)
+			expect(loans_after.length).to.eq(1)
+			expect(alice_loans_after.length).to.eq(1)
+			expect(loans_after[0].collateral_amount).to.eq(amount2)
 		})
 
 	});

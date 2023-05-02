@@ -7,22 +7,17 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IOracle.sol";
 import "./Staking.sol";
+import "./LoanNFT.sol";
 
 
 contract Line is ERC20, Ownable, Staking {
 
 	using SafeERC20 for IERC20;
 
-	struct Loan {
-		uint collateral_amount;
-		uint loan_amount;
-		uint interest_multiplier; // interest multiplier when the loan was opened, used to calculate the interest to pay
-		address owner;
-		uint32 ts;
-	}
-
 	event NewLoan(uint indexed loan_num, address indexed owner, uint collateral_amount, uint loan_amount, uint net_loan_amount, uint interest_multiplier);
 	event Repaid(uint indexed loan_num, address indexed owner, uint collateral_amount, uint repaid_loan_amount, uint interest_multiplier);
+
+	LoanNFT public immutable loanNFT;
 
 	address public immutable collateral_token_address;
 	uint public origination_fee10000 = 100; // 1%
@@ -31,9 +26,6 @@ contract Line is ERC20, Ownable, Staking {
 
 	uint public interest_multiplier = 1e18;
 	uint public last_ts;
-
-	uint public last_loan_num;
-	mapping(uint => Loan) public loans;
 
 	uint public total_debt;
 	uint public total_interest;
@@ -48,6 +40,7 @@ contract Line is ERC20, Ownable, Staking {
 		require(_collateral_token_address != address(0), "only ERC20 tokens");
 		collateral_token_address = _collateral_token_address;
 		last_ts = block.timestamp;
+		loanNFT = new LoanNFT("Loan NFT", "LoanNFT");
 	}
 
 	function setOriginationFee(uint new_origination_fee10000) onlyOwner external {
@@ -89,80 +82,40 @@ contract Line is ERC20, Ownable, Staking {
 		applyInterest();
 		uint loan_amount = getLoanAmount(collateral_amount);
 		uint net_loan_amount = loan_amount - loan_amount * origination_fee10000 / 10000;
-		last_loan_num++;
 		total_debt += loan_amount;
-		loans[last_loan_num] = Loan({
+		uint loan_num = loanNFT.mint(LoanNFT.Loan({
 			collateral_amount: collateral_amount,
 			loan_amount: loan_amount,
 			interest_multiplier: interest_multiplier,
-			owner: msg.sender,
+			initial_owner: msg.sender,
 			ts: uint32(block.timestamp)
-		});
+		})); // includes an external call which may re-enter, no harm
 		_mint(msg.sender, net_loan_amount);
-		emit NewLoan(last_loan_num, msg.sender, collateral_amount, loan_amount, net_loan_amount, interest_multiplier);
-		return last_loan_num;
+		emit NewLoan(loan_num, msg.sender, collateral_amount, loan_amount, net_loan_amount, interest_multiplier);
+		return loan_num;
 	}
 
 	function repay(uint loan_num) external {
-		Loan memory loan = loans[loan_num];
+		LoanNFT.Loan memory loan = loanNFT.getLoan(loan_num);
 		require(loan.collateral_amount > 0, "no such loan");
-		require(loan.owner == msg.sender, "not your loan");
+		require(loanNFT.ownerOf(loan_num) == msg.sender, "not your loan");
 		applyInterest();
 		uint current_loan_amount = loan.loan_amount * interest_multiplier / loan.interest_multiplier;
 		_burn(msg.sender, current_loan_amount);
-		delete loans[loan_num];
 		total_debt -= current_loan_amount;
+		loanNFT.burn(loan_num); // no external calls there, may not re-enter
 		IERC20(collateral_token_address).safeTransfer(msg.sender, loan.collateral_amount);
 		emit Repaid(loan_num, msg.sender, loan.collateral_amount, current_loan_amount, interest_multiplier);
 	}
 
 	function getLoanDue(uint loan_num) external view returns (uint) {
-		Loan memory loan = loans[loan_num];
+		LoanNFT.Loan memory loan = loanNFT.getLoan(loan_num);
 		require(loan.collateral_amount > 0, "no such loan");
 		uint new_interest_multiplier = interest_multiplier + interest_multiplier * interest_rate10000 / 10000 * (block.timestamp - last_ts) / 3600 / 24 / 365;
 		uint current_loan_amount = loan.loan_amount * new_interest_multiplier / loan.interest_multiplier;
 		return current_loan_amount;
 	}
 
-	function getAllActiveLoans() external view returns (Loan[] memory) {
-		uint count_active_loans = 0;
-		for (uint i=1; i<=last_loan_num; i++){
-			Loan memory loan = loans[i];
-			if (loan.collateral_amount > 0)
-				count_active_loans++;
-		}
-		Loan[] memory active_loans = new Loan[](count_active_loans);
-		uint current = 0;
-		for (uint i=1; i<=last_loan_num; i++){
-			Loan memory loan = loans[i];
-			if (loan.collateral_amount > 0){
-				active_loans[current] = loan;
-				current++;
-			}
-		}
-		return active_loans;
-	}
-
-	function getAllActiveLoansByOwner(address owner) external view returns (Loan[] memory) {
-		uint count_active_loans = 0;
-		for (uint i=1; i<=last_loan_num; i++) {
-			Loan memory loan = loans[i];
-			if (loan.collateral_amount > 0 && loan.owner == owner)
-				count_active_loans++;
-		}
-		Loan[] memory active_loans = new Loan[](count_active_loans);
-		if (count_active_loans == 0)
-			return active_loans;
-		uint current = 0;
-		for (uint i=1; i<=last_loan_num; i++) {
-			Loan memory loan = loans[i];
-			if (loan.collateral_amount > 0 && loan.owner == owner){
-				active_loans[current] = loan;
-				current++;
-			}
-		}
-		return active_loans;
-	}
 
 	function updateAndGetTotalReward() public override returns (uint) {
 		applyInterest();
