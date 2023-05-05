@@ -6,11 +6,12 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IOracle.sol";
+import "./ILine.sol";
 import "./Staking.sol";
 import "./LoanNFT.sol";
 
 
-contract Line is ERC20, Ownable, Staking {
+contract Line is ERC20, Ownable, Staking, ILine {
 
 	using SafeERC20 for IERC20;
 
@@ -108,11 +109,14 @@ contract Line is ERC20, Ownable, Staking {
 		emit Repaid(loan_num, msg.sender, loan.collateral_amount, current_loan_amount, interest_multiplier);
 	}
 
+	function getCurrentInterestMultiplier() public view returns (uint) {
+		return interest_multiplier + interest_multiplier * interest_rate10000 / 10000 * (block.timestamp - last_ts) / 3600 / 24 / 365;
+	}
+
 	function getLoanDue(uint loan_num) external view returns (uint) {
 		LoanNFT.Loan memory loan = loanNFT.getLoan(loan_num);
 		require(loan.collateral_amount > 0, "no such loan");
-		uint new_interest_multiplier = interest_multiplier + interest_multiplier * interest_rate10000 / 10000 * (block.timestamp - last_ts) / 3600 / 24 / 365;
-		uint current_loan_amount = loan.loan_amount * new_interest_multiplier / loan.interest_multiplier;
+		uint current_loan_amount = loan.loan_amount * getCurrentInterestMultiplier() / loan.interest_multiplier;
 		return current_loan_amount;
 	}
 

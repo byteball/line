@@ -30,12 +30,12 @@ contract Oracle is IOracle {
 		require(reserve0 != 0 && reserve1 != 0, 'NO_RESERVES'); // ensure that there's liquidity in the pair
 	}
 
-	function updateAndGetAveragePrice() public returns (uint price0Average) {
+	function updateAndGetAveragePrice() public returns (uint priceAverage) {
 		(uint price0Cumulative, uint price1Cumulative, uint32 blockTimestamp) = UniswapV2OracleLibrary.currentCumulativePrices(address(pair));
 		uint priceCumulative = isToken0 ? price0Cumulative : price1Cumulative;
 		uint32 timeElapsed = blockTimestamp - blockTimestampLast;
 
-		price0Average = (priceCumulative - priceCumulativeLast) / timeElapsed * 1e18 / UQ112x112.Q112;
+		priceAverage = (priceCumulative - priceCumulativeLast) / timeElapsed * 1e18 / UQ112x112.Q112;
 
 		// update the state if a full period has passed since the last update
 		if (timeElapsed >= PERIOD){
@@ -44,12 +44,12 @@ contract Oracle is IOracle {
 		}
 	}
 
-	function getAveragePrice() external view returns (uint price0Average) {
+	function getAveragePrice() external view returns (uint priceAverage) {
 		(uint price0Cumulative, uint price1Cumulative, uint32 blockTimestamp) = UniswapV2OracleLibrary.currentCumulativePrices(address(pair));
 		uint priceCumulative = isToken0 ? price0Cumulative : price1Cumulative;
 		uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
 
-		price0Average = (priceCumulative - priceCumulativeLast) / timeElapsed * 1e18 / UQ112x112.Q112;
+		priceAverage = (priceCumulative - priceCumulativeLast) / timeElapsed * 1e18 / UQ112x112.Q112;
 	}
 
 	function getCurrentPrice() public view returns (uint){
