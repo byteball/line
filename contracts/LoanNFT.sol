@@ -43,6 +43,7 @@ contract LoanNFT is ERC721 {
 
 	uint public max_price_contract_gas_consumption = 200000;
 	uint public exchange_fee10000 = 100; // 1%, charged from taker only
+	string private base_uri = "";
 
 	address public immutable issuer;
 
@@ -59,6 +60,10 @@ contract LoanNFT is ERC721 {
 	constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_){
 		issuer = msg.sender;
 	}
+
+    function _baseURI() internal view override returns (string memory) {
+        return base_uri;
+    }
 
 	function mint(Loan memory loan) external onlyIssuer returns (uint) {
 		last_loan_num++;
@@ -81,6 +86,11 @@ contract LoanNFT is ERC721 {
 	function setMaxPriceContractGasConsumption(uint new_gas) onlyOwner external {
 		max_price_contract_gas_consumption = new_gas;
 	}
+
+	function setBaseUri(string memory new_uri) onlyOwner external {
+		base_uri = new_uri;
+	}
+	
 
 	function getLoan(uint loan_num) external view returns (Loan memory){
 		return loans[loan_num];
