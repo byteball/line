@@ -18,6 +18,18 @@ module.exports = {
       accounts: {
         mnemonic: process.env.mnemonic,
       }
-    }
+    },
+    bsc: {
+      url: process.env.testnet ? "https://data-seed-prebsc-1-s1.binance.org:8545" : "https://bsc-dataseed.binance.org",
+      accounts: {
+        mnemonic: process.env.mnemonic,
+      }
+    },
+    polygon: {
+      url: process.env.testnet ? "https://rpc-mumbai.maticvigil.com" : "https://rpc-mainnet.maticvigil.com",
+      accounts: {
+        mnemonic: process.env.mnemonic,
+      }
+    },
   }
 };
