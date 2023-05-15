@@ -24,6 +24,7 @@ contract LoanNFT is ERC721 {
 
 	// adds current_loan_amount which constantly grows
 	struct CurrentLoan {
+		uint loan_num;
 		uint collateral_amount;
 		uint loan_amount;
 		uint current_loan_amount;
@@ -110,6 +111,7 @@ contract LoanNFT is ERC721 {
 			Loan memory loan = loans[i];
 			if (loan.collateral_amount > 0){
 				active_loans[current] = CurrentLoan({
+					loan_num: i,
 					collateral_amount: loan.collateral_amount,
 					loan_amount: loan.loan_amount,
 					current_loan_amount: loan.loan_amount * interest_multiplier / loan.interest_multiplier,
@@ -139,6 +141,7 @@ contract LoanNFT is ERC721 {
 			Loan memory loan = loans[i];
 			if (loan.collateral_amount > 0 && ownerOf(i) == owner){
 				active_loans[current] = CurrentLoan({
+					loan_num: i,
 					collateral_amount: loan.collateral_amount,
 					loan_amount: loan.loan_amount,
 					current_loan_amount: loan.loan_amount * interest_multiplier / loan.interest_multiplier,
