@@ -8,9 +8,9 @@ const hre = require("hardhat");
 const { reset } = require("@nomicfoundation/hardhat-network-helpers");
 require('dotenv').config();
 
-const GBYTE_ADDRESS = process.env.testnet ? '0xe1C41Aae8b62caF493908ca63990f019c0786121' : '0x0b93109d05Ef330acD2c75148891cc61D20C3EF1';
+//const GBYTE_ADDRESS = process.env.testnet ? '0xe1C41Aae8b62caF493908ca63990f019c0786121' : '0x0b93109d05Ef330acD2c75148891cc61D20C3EF1';
 //const GBYTE_ADDRESS = process.env.testnet ? '0x01d040cfA47C3B60289c1f3a97Dce039445BFCAf' : '0xeb34De0C4B2955CE0ff1526CDf735c9E6d249D09'; // BSC
-//const GBYTE_ADDRESS = process.env.testnet ? '0xeA9E7c046c6E4635F9A71836fF023c8f45948433' : '0xAB5F7a0e20b0d056Aed4Aa4528C78da45BE7308b'; // Polygon
+const GBYTE_ADDRESS = process.env.testnet ? '0xeA9E7c046c6E4635F9A71836fF023c8f45948433' : '0xAB5F7a0e20b0d056Aed4Aa4528C78da45BE7308b'; // Polygon
 const rpc = process.env.testnet ? 'https://evm.testnet.kava.io' : 'https://evm.kava.io';
 
 async function main() {
