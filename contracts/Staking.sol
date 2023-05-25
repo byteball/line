@@ -18,6 +18,11 @@ abstract contract Staking is ERC20 {
 	}
 	mapping(address => Pool) public pools; // pool address => share of interest income
 
+	struct PoolInfo {
+		Pool pool;
+		address pool_address;
+	}
+
 	address[] public pool_addresses; // list of all pools that had ever received rewards
 
 	struct Stake {
@@ -91,15 +96,15 @@ abstract contract Staking is ERC20 {
 			updateUserReward(pool_address, user_addresses[i]);
 	}
 
-	function getAllPools() external view returns (Pool[] memory all_pools){
-		all_pools = new Pool[](pool_addresses.length);
+	function getAllPools() external view returns (PoolInfo[] memory all_pools){
+		all_pools = new PoolInfo[](pool_addresses.length);
 		uint total_reward = getTotalReward();
 		for (uint i=0; i<pool_addresses.length; i++){
 			address pool_address = pool_addresses[i];
 			Pool memory pool = pools[pool_address];
 			if (pool.total_staked_in_pool > 0)
 				pool.total_pool_reward_per_token += 1e18 * (total_reward - pool.last_total_reward) * pool.reward_share10000/10000 / pool.total_staked_in_pool;
-			all_pools[i] = pool;
+			all_pools[i] = PoolInfo({pool: pool, pool_address: pool_address});
 		}
 	}
 

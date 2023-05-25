@@ -8,7 +8,7 @@ const hre = require("hardhat");
 require('dotenv').config();
 const lineJson = require('../artifacts/contracts/Line.sol/Line.json');
 
-const line_address = process.env.testnet ? '0xC958b0e1cF7f2c18043896B36b44a5f7Bd029C19' : ''; // Polygon
+const line_address = process.env.testnet ? '0xC7eF6c6C211071ffBD03dfD418E5bE589F1975Ee' : ''; // Polygon
 const token_address = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB'; // LINK
 const share = 5000;
 
