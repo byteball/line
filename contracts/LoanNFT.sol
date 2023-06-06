@@ -75,8 +75,11 @@ contract LoanNFT is ERC721 {
 
 	function burn(uint loan_num) external onlyIssuer {
 		delete loans[loan_num];
-		delete sell_orders[loan_num];
 		_burn(loan_num);
+	}
+
+    function _beforeTokenTransfer(address from, address to, uint256 firstTokenId, uint256 batchSize) internal override {
+		delete sell_orders[firstTokenId];
 	}
 
 	function setExchangeFee(uint new_exchange_fee10000) onlyOwner external {
@@ -253,7 +256,6 @@ contract LoanNFT is ERC721 {
 		require(price > 0, "this loan is not for sale");
 		if (max_price > 0)
 			require(price <= max_price, "price too large"); // if the price is determined by price_contract, it could suddenly change
-		delete sell_orders[loan_num];
 		address old_owner = ownerOf(loan_num);
 		require(old_owner != msg.sender, "buying from oneself?");
 		IERC20(ILine(issuer).collateral_token_address()).safeTransferFrom(msg.sender, old_owner, price);
