@@ -79,7 +79,8 @@ contract LoanNFT is ERC721 {
 	}
 
     function _beforeTokenTransfer(address from, address to, uint256 firstTokenId, uint256 batchSize) internal override {
-		delete sell_orders[firstTokenId];
+		for (uint n = firstTokenId; n < firstTokenId + batchSize; n++)
+			delete sell_orders[n];
 	}
 
 	function setExchangeFee(uint new_exchange_fee10000) onlyOwner external {
