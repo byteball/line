@@ -176,6 +176,7 @@ contract LoanNFT is ERC721 {
 		ILoanPrice price_contract;
 		bytes data;
 		uint current_price;
+		uint current_hedge_price;
 		uint loan_num;
 		uint collateral_amount;
 		uint current_loan_amount;
@@ -287,6 +288,7 @@ contract LoanNFT is ERC721 {
 					price_contract: so.price_contract,
 					data: so.data,
 					current_price: current_price,
+					current_hedge_price: 1e18 * current_price / current_loan_amount,
 					loan_num: i,
 					collateral_amount: loan.collateral_amount,
 					current_loan_amount: current_loan_amount,
