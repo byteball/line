@@ -10,7 +10,7 @@ import '@uniswap/v2-periphery/contracts/libraries/UniswapV2OracleLibrary.sol';
 import "./IOracle.sol";
 
 
-contract Oracle is IOracle {
+contract UniswapV2Oracle is IOracle {
 	uint public constant PERIOD = 24 hours;
 
 	IUniswapV2Pair immutable pair;

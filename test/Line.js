@@ -144,7 +144,7 @@ describe("Line", function () {
 			pair_address = await factory_contract.getPair(line_contract.address, gbyte_contract.address);
 			console.log({ pair_address });
 
-			const OracleFactory = await ethers.getContractFactory("Oracle");
+			const OracleFactory = await ethers.getContractFactory("UniswapV2Oracle");
 			oracle_contract = await OracleFactory.deploy(pair_address, line_contract.address);
 			console.log(`deployed oracle at`, oracle_contract.address);
 
