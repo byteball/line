@@ -5,13 +5,10 @@
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
 // global scope, and execute the script.
 const hre = require("hardhat");
-require('dotenv').config();
 const lineJson = require('../artifacts/contracts/Line.sol/Line.json');
 
-const line_address = process.env.testnet ? '0xC7eF6c6C211071ffBD03dfD418E5bE589F1975Ee' : '0x31f8d38df6514b6cc3C360ACE3a2EFA7496214f6'; // Polygon testnet, Kava mainnet
-//const token_address = '0x0bA1f827D2524a2ef6ce65129F63DEad622E75E3'; // LINK
-const token_address = '0xFb1Efb5FD9dfb72f40B81bC5aa0e15d616BA8831'; // Equilibre LINE-GBYTE
-const share = 1000; // out of 10000
+const line_address = '0x31f8d38df6514b6cc3C360ACE3a2EFA7496214f6';
+const oracle_address = '0x09f91A3f21eaA89C1983dFBA6c8d13B135D6fb02';
 
 async function main() {
 	const [owner] = await hre.ethers.getSigners();
@@ -21,7 +18,7 @@ async function main() {
 
 	const line_contract = new ethers.Contract(line_address, lineJson.abi, owner);
 	console.log(`using LINE contract at`, line_contract.address);
-	const res = await line_contract.setRewardShare(token_address, share);
+	const res = await line_contract.setOracle(oracle_address);
 	console.log(res);
 }
 
