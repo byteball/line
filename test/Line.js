@@ -28,9 +28,11 @@ describe("Line", function () {
 		const [owner, alice, bob, charlie] = signers;
 	//	console.log({ owner, alice });
 
-		const GbyteFactory = await ethers.getContractFactory("MintableToken");
-		const gbyte_contract = await GbyteFactory.deploy("Imported GBYTE", "GBYTE");
+		const TokenFactory = await ethers.getContractFactory("MintableToken");
+		const gbyte_contract = await TokenFactory.deploy("Imported GBYTE", "GBYTE");
 		console.log(`deployed GBYTE at`, gbyte_contract.address);
+		const usdt_contract = await TokenFactory.deploy("USDT", "USDT");
+		console.log(`deployed USDT at`, usdt_contract.address);
 
 		const LineFactory = await ethers.getContractFactory("Line");
 		const line_contract = await LineFactory.deploy(gbyte_contract.address, "LINE Token", "LINE");
@@ -39,7 +41,10 @@ describe("Line", function () {
 		const uniswap_contract = new ethers.Contract(UNISWAP_V2_ROUTER, uniswapV2RouterJson.abi, signers[0]);
 		console.log(`uniswap router contract`, uniswap_contract.address);
 
-		return { gbyte_contract, line_contract, uniswap_contract, owner, alice, bob, charlie };
+		const SabFactory = await ethers.getContractFactory("UniSwapAndBorrow");
+		const sab_contract = await SabFactory.deploy(UNISWAP_V2_ROUTER, line_contract.address);
+
+		return { gbyte_contract, usdt_contract, line_contract, uniswap_contract, sab_contract, owner, alice, bob, charlie };
 	}
 
 	async function printOraclePrices() {
@@ -49,9 +54,11 @@ describe("Line", function () {
 	}
 
 	let gbyte_contract;
+	let usdt_contract;
 	let line_contract;
 	let nft_contract;
 	let uniswap_contract;
+	let sab_contract;
 	let oracle_contract;
 	let pair_address;
 	let owner;
@@ -65,8 +72,10 @@ describe("Line", function () {
 		//	const { gbyte_contract, line_contract } = await loadFixture(deployContracts);
 			const res = await deployContracts();
 			gbyte_contract = res.gbyte_contract;
+			usdt_contract = res.usdt_contract;
 			line_contract = res.line_contract;
 			uniswap_contract = res.uniswap_contract;
+			sab_contract = res.sab_contract;
 			owner = res.owner;
 			alice = res.alice;
 			bob = res.bob;
@@ -77,6 +86,7 @@ describe("Line", function () {
 			console.log('NFT contract', nft_contract.address);
 
 			expect(await gbyte_contract.symbol()).to.equal("GBYTE");
+			expect(await usdt_contract.symbol()).to.equal("USDT");
 			expect(await line_contract.symbol()).to.equal("LINE");
 			expect(await line_contract.collateral_token_address()).to.equal(gbyte_contract.address);
 		});
@@ -86,6 +96,8 @@ describe("Line", function () {
 			await expect(gbyte_contract.mint(alice.address, amount)).to.changeTokenBalance(gbyte_contract, alice.address, amount);
 			await expect(gbyte_contract.mint(bob.address, amount)).to.changeTokenBalance(gbyte_contract, bob.address, amount);
 			await expect(gbyte_contract.mint(charlie.address, amount)).to.changeTokenBalance(gbyte_contract, charlie.address, amount);
+			await expect(usdt_contract.mint(alice.address, amount)).to.changeTokenBalance(usdt_contract, alice.address, amount);
+			await expect(usdt_contract.mint(bob.address, amount)).to.changeTokenBalance(usdt_contract, bob.address, amount);
 		});
 
 		it("Admin", async function () {
@@ -393,6 +405,47 @@ describe("Line", function () {
 			const sell_orders = await nft_contract.getSellOrders();
 			expect(sell_orders.length).to.eq(0);
 		})
+
+		it("Create a USDT uniswap pair, add liquidity, and swap-and-borrow", async function () {
+			const gbyte_amount = parseEther("1");
+			const usdt_amount = parseEther("10");
+			await expect(usdt_contract.connect(alice).approve(uniswap_contract.address, BigNumber.from(2).pow(256).sub(1))).not.to.be.reverted;
+			await expect(uniswap_contract.connect(alice).addLiquidity(usdt_contract.address, gbyte_contract.address, usdt_amount, gbyte_amount, usdt_amount, gbyte_amount, alice.address, Math.round(Date.now() / 1000) + 2 * 365 * 24 * 3600)).not.to.be.reverted;
+			
+			expect(await usdt_contract.balanceOf(bob.address)).to.eq(parseEther('100'))
+			expect(await line_contract.balanceOf(bob.address)).to.eq(0)
+			await expect(usdt_contract.connect(bob).approve(sab_contract.address, BigNumber.from(2).pow(256).sub(1))).not.to.be.reverted;
+			const amount = parseEther('1');
+			const amountOutMin = parseEther('0.05');
+			await expect(sab_contract.connect(bob).swapAndBorrow(amount, amountOutMin, [usdt_contract.address, gbyte_contract.address], Math.round(Date.now() / 1000) + 2 * 365 * 24 * 3600)).not.to.be.reverted;
+			expect(await nft_contract.ownerOf(3)).to.eq(bob.address)
+			expect(await line_contract.balanceOf(bob.address)).to.gt(0)
+			expect(await line_contract.balanceOf(sab_contract.address)).to.eq(0)
+			expect(await gbyte_contract.balanceOf(sab_contract.address)).to.eq(0)
+			expect(await nft_contract.balanceOf(sab_contract.address)).to.eq(0)
+			const loan = await nft_contract.loans(3);
+			console.log('loan', loan);
+			expect(loan.initial_owner).to.eq(sab_contract.address)
+		});
+
+		it("Create an ETH uniswap pair, add liquidity, and swap-and-borrow", async function () {
+			const gbyte_amount = parseEther("1");
+			const eth_amount = parseEther("0.01");
+			await expect(uniswap_contract.connect(alice).addLiquidityETH(gbyte_contract.address, gbyte_amount, gbyte_amount, eth_amount, alice.address, Math.round(Date.now() / 1000) + 2 * 365 * 24 * 3600, { value: eth_amount })).not.to.be.reverted;
+			
+			const balance_before = await line_contract.balanceOf(bob.address)
+			const amount = parseEther('0.001');
+			const amountOutMin = parseEther('0.05');
+			await expect(sab_contract.connect(bob).swapAndBorrow(amount, amountOutMin, [await uniswap_contract.WETH(), gbyte_contract.address], Math.round(Date.now() / 1000) + 2 * 365 * 24 * 3600, { value: amount })).not.to.be.reverted;
+			expect(await nft_contract.ownerOf(4)).to.eq(bob.address)
+			expect(await line_contract.balanceOf(bob.address)).to.gt(balance_before)
+			expect(await line_contract.balanceOf(sab_contract.address)).to.eq(0)
+			expect(await gbyte_contract.balanceOf(sab_contract.address)).to.eq(0)
+			expect(await nft_contract.balanceOf(sab_contract.address)).to.eq(0)
+			const loan = await nft_contract.loans(4);
+			console.log('loan', loan);
+			expect(loan.initial_owner).to.eq(sab_contract.address)
+		});
 
 	});
 
