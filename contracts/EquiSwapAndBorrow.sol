@@ -34,7 +34,7 @@ interface EquilibreRouter {
 
 interface ILine is IERC20 {
 	function collateral_token_address() external returns (address);
-	function LoanNFT() external returns (IERC721);
+	function loanNFT() external returns (IERC721);
 	function borrow(uint collateral_amount) external returns (uint);
 }
 
@@ -80,7 +80,7 @@ contract EquiSwapAndBorrow is IERC721Receiver {
 		
 		uint loan_num = line.borrow(collateral_amount);
 		line.safeTransfer(msg.sender, line.balanceOf(address(this)));
-		line.LoanNFT().safeTransferFrom(address(this), msg.sender, loan_num);
+		line.loanNFT().safeTransferFrom(address(this), msg.sender, loan_num);
 	}
 
 }
