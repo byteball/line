@@ -10,8 +10,9 @@ const lineJson = require('../artifacts/contracts/Line.sol/Line.json');
 
 const line_address = process.env.testnet ? '0xC7eF6c6C211071ffBD03dfD418E5bE589F1975Ee' : '0x31f8d38df6514b6cc3C360ACE3a2EFA7496214f6'; // Polygon testnet, Kava mainnet
 //const token_address = '0x0bA1f827D2524a2ef6ce65129F63DEad622E75E3'; // LINK
-const token_address = '0xFb1Efb5FD9dfb72f40B81bC5aa0e15d616BA8831'; // Equilibre LINE-GBYTE
-const share = 1000; // out of 10000
+//const token_address = '0xFb1Efb5FD9dfb72f40B81bC5aa0e15d616BA8831'; // Equilibre LINE-GBYTE
+const token_address = '0xb253c4f9b615C20D9DE12bF317c71f896eb361A7'; // Equilibre LINE-USDT
+const share = 5000; // out of 10000
 
 async function main() {
 	const [owner] = await hre.ethers.getSigners();
