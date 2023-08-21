@@ -51,7 +51,7 @@ contract EquilibreOracle is IOracle {
 		(uint reserve0Cumulative, uint reserve1Cumulative, ) = pair.currentCumulativePrices();
 		uint d0 = reserve0Cumulative - reserve0CumulativeLast;
 		uint d1 = reserve1Cumulative - reserve1CumulativeLast;
-		priceAverage = isToken0 ? 1e18 * d1/d0 : 1e18 * d1/d0;
+		priceAverage = isToken0 ? 1e18 * d1/d0 : 1e18 * d0/d1;
 	}
 
 	function getCurrentPrice() public view returns (uint){
