@@ -36,7 +36,7 @@ contract EquilibreOracle is IOracle {
 		(uint reserve0Cumulative, uint reserve1Cumulative, uint blockTimestamp) = pair.currentCumulativePrices();
 		uint d0 = reserve0Cumulative - reserve0CumulativeLast;
 		uint d1 = reserve1Cumulative - reserve1CumulativeLast;
-		priceAverage = isToken0 ? 1e18 * d1/d0 : 1e18 * d1/d0;
+		priceAverage = isToken0 ? 1e18 * d1/d0 : 1e18 * d0/d1;
 		uint32 timeElapsed = uint32(blockTimestamp) - blockTimestampLast;
 
 		// update the state if a full period has passed since the last update

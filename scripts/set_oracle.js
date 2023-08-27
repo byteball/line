@@ -8,7 +8,7 @@ const hre = require("hardhat");
 const lineJson = require('../artifacts/contracts/Line.sol/Line.json');
 
 const line_address = '0x31f8d38df6514b6cc3C360ACE3a2EFA7496214f6';
-const oracle_address = '0x7EEa118A5491148D0Ed5E076ceA4D9F6d1E47D96';
+const oracle_address = '0x7D6deb9C4e3179967488E7E53C1B57D36b51aE6C';
 
 async function main() {
 	const [owner] = await hre.ethers.getSigners();
